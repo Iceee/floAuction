@@ -1,16 +1,17 @@
 package com.flobi.floAuction;
 
-import java.util.Map;
-
+import com.flobi.utility.functions;
+import com.flobi.utility.items;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import com.flobi.utility.functions;
-import com.flobi.utility.items;
+import java.util.Map;
+import java.util.UUID;
 
 public class AuctionBid {
 	private Auction auction;
-	private String bidderName;
+	private UUID bidderUUID;
 	private long bidAmount = 0;
 	private long maxBidAmount = 0;
 	private String error;
@@ -19,7 +20,7 @@ public class AuctionBid {
 
 	public AuctionBid(Auction theAuction, Player player, String[] inputArgs) {
 		auction = theAuction;
-		bidderName = player.getName();
+        bidderUUID = player.getUniqueId();
 		args = inputArgs;
 		if (!validateBidder()) return;
 		if (!parseArgs()) return;
@@ -31,14 +32,14 @@ public class AuctionBid {
 		AuctionBid currentBid = auction.getCurrentBid();
 		
 		for(int i = 0; i < auction.sealedBids.size(); i++) {
-			if (auction.sealedBids.get(i).getBidder().equalsIgnoreCase(this.getBidder())) {
+			if (auction.sealedBids.get(i).getBidder().equals(this.getBidder())) {
 				previousSealedReserve += auction.sealedBids.get(i).getBidAmount();
 				auction.sealedBids.remove(i);
 				i--;
 			}
 		}
 		
-		if (currentBid != null && currentBid.getBidder().equalsIgnoreCase(bidderName)) {
+		if (currentBid != null && currentBid.getBidder().equals(bidderUUID)) {
 			// Same bidder: only reserve difference.
 			if (maxBidAmount > currentBid.getMaxBidAmount() + previousSealedReserve) {
 				amountToReserve = maxBidAmount - currentBid.getMaxBidAmount() - previousSealedReserve;
@@ -49,7 +50,7 @@ public class AuctionBid {
 		} else {
 			amountToReserve = maxBidAmount;
 		}
-		if (functions.withdrawPlayer(bidderName, amountToReserve)) {
+		if (functions.withdrawPlayer(bidderUUID, amountToReserve)) {
 			reserve = functions.getUnsafeMoney(amountToReserve);
 			return true;
 		} else {
@@ -64,7 +65,7 @@ public class AuctionBid {
 			Participant.addParticipant(getBidder());
 		} else {
 			// Refund reserve.
-			functions.depositPlayer(bidderName, reserve);
+			functions.depositPlayer(bidderUUID, reserve);
 			reserve = 0;
 		}
 		
@@ -104,26 +105,26 @@ public class AuctionBid {
 		}
 		
 		// Apply winnings to auction owner.
-		floAuction.econ.depositPlayer(auction.getOwner(), unsafeBidAmount);
+		floAuction.econ.depositPlayer(Bukkit.getPlayer(auction.getOwner()).getName(), unsafeBidAmount);
 
 		// Refund remaining reserve.
-		floAuction.econ.depositPlayer(bidderName, reserve - unsafeBidAmount - taxes);
+		floAuction.econ.depositPlayer(Bukkit.getPlayer(bidderUUID).getName(), reserve - unsafeBidAmount - taxes);
 		
 		reserve = 0;
 	}
 	
 	private Boolean validateBidder() {
-		if (bidderName == null) {
+		if (bidderUUID == null) {
 			error = "bid-fail-no-bidder";
 			return false;
 		}
 
-		if (!Participant.checkLocation(bidderName)) {
+		if (!Participant.checkLocation(bidderUUID)) {
 			error = "bid-fail-outside-auctionhouse";
 			return false;
 		}
 		
-		if (bidderName.equalsIgnoreCase(auction.getOwner()) && !floAuction.allowBidOnOwn) {
+		if (bidderUUID.equals(auction.getOwner()) && !floAuction.allowBidOnOwn) {
 			error = "bid-fail-is-auction-owner";
 			return false;
 		}
@@ -136,7 +137,7 @@ public class AuctionBid {
 		return true;
 	}
 	public Boolean raiseOwnBid(AuctionBid otherBid) {
-		if (bidderName.equalsIgnoreCase(otherBid.bidderName)) {
+		if (bidderUUID.equals(otherBid.bidderUUID)) {
 			// Move reserve money here.
 			reserve = reserve + otherBid.reserve;
 			otherBid.reserve = 0;
@@ -199,7 +200,7 @@ public class AuctionBid {
 					// Unless the starting bid is 0, then use the minimum bid increment.
 					bidAmount = auction.getMinBidIncrement();
 				}
-			} else if (currentBid.getBidder().equalsIgnoreCase(bidderName)) {
+			} else if (currentBid.getBidder().equals(bidderUUID)) {
 				// We are the current bidder, so use previous.  Don't auto-up our own bid.
 				bidAmount = currentBid.bidAmount;
 			} else {
@@ -237,8 +238,8 @@ public class AuctionBid {
 	public String getError() {
 		return error;
 	}
-	public String getBidder() {
-		return bidderName;
+	public UUID getBidder() {
+		return bidderUUID;
 	}
 	public long getBidAmount() {
 		return bidAmount;

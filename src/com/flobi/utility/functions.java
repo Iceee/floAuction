@@ -1,10 +1,11 @@
 package com.flobi.utility;
 
-import java.text.DecimalFormat;
-
-import net.milkbowl.vault.economy.EconomyResponse;
-
 import com.flobi.floAuction.floAuction;
+import net.milkbowl.vault.economy.EconomyResponse;
+import org.bukkit.Bukkit;
+
+import java.text.DecimalFormat;
+import java.util.UUID;
 
 public class functions {
 
@@ -29,15 +30,15 @@ public class functions {
 	}
 	
 	// Merges player's preset with the current specifications and system defaults.
-	public static String[] mergeInputArgs(String playerName, String[] inputArgs, boolean validateArgs) {
+	public static String[] mergeInputArgs(UUID playerUUID, String[] inputArgs, boolean validateArgs) {
 		// Get existing defaults (if present)
 		String[] resultArgs = null;
 		
 		// if player has no preset, use the current system defaults:
-		if (floAuction.userSavedInputArgs.get(playerName) == null) {
+		if (floAuction.userSavedInputArgs.get(playerUUID) == null) {
 			resultArgs = new String[]{"this", removeUselessDecimal(Double.toString(getUnsafeMoney(floAuction.defaultStartingBid))), removeUselessDecimal(Double.toString(getUnsafeMoney(floAuction.defaultBidIncrement))), Integer.toString(floAuction.defaultAuctionTime), "0"};
 		} else {
-			resultArgs = floAuction.userSavedInputArgs.get(playerName).clone();
+			resultArgs = floAuction.userSavedInputArgs.get(playerUUID).clone();
 		}
 		
 		// Size increased in 2.10.0
@@ -68,7 +69,7 @@ public class functions {
 					!resultArgs[0].equalsIgnoreCase("all") && 
 					!resultArgs[0].matches("[0-9]{1,7}")
 				) {
-					floAuction.sendMessage("parse-error-invalid-quantity", playerName, null);
+					floAuction.sendMessage("parse-error-invalid-quantity", playerUUID, null);
 					return null;
 				}
 			}
@@ -80,7 +81,7 @@ public class functions {
 				}
 				if (validateArgs) {
 					if (resultArgs[1].isEmpty() || !resultArgs[1].matches(floAuction.decimalRegex)) {
-						floAuction.sendMessage("parse-error-invalid-starting-bid", playerName, null);
+						floAuction.sendMessage("parse-error-invalid-starting-bid", playerUUID, null);
 						return null;
 					}
 				}
@@ -92,7 +93,7 @@ public class functions {
 					}
 					if (validateArgs) {
 						if (resultArgs[2].isEmpty() || !resultArgs[2].matches(floAuction.decimalRegex)) {
-							floAuction.sendMessage("parse-error-invalid-max-bid", playerName, null);
+							floAuction.sendMessage("parse-error-invalid-max-bid", playerUUID, null);
 							return null;
 						}
 					}
@@ -104,7 +105,7 @@ public class functions {
 						}
 						if (validateArgs) {
 							if (!resultArgs[3].matches("[0-9]{1,7}")) {
-								floAuction.sendMessage("parse-error-invalid-time", playerName, null);
+								floAuction.sendMessage("parse-error-invalid-time", playerUUID, null);
 								return null;
 							}
 						}
@@ -116,7 +117,7 @@ public class functions {
 							}
 							if (validateArgs) {
 								if (resultArgs[4].isEmpty() || !resultArgs[4].matches(floAuction.decimalRegex)) {
-									floAuction.sendMessage("parse-error-invalid-buynow", playerName, null);
+									floAuction.sendMessage("parse-error-invalid-buynow", playerUUID, null);
 									return null;
 								}
 							}
@@ -141,17 +142,17 @@ public class functions {
 		return floAuction.econ.format(unsafeMoney);
 	}
 	
-	public static boolean withdrawPlayer(String playerName, long safeMoney) {
-		return withdrawPlayer(playerName, getUnsafeMoney(safeMoney));
+	public static boolean withdrawPlayer(UUID playerUUID, long safeMoney) {
+		return withdrawPlayer(playerUUID, getUnsafeMoney(safeMoney));
 	}
 	
-	public static boolean withdrawPlayer(String playerName, double unsafeMoney) {
-		EconomyResponse receipt = floAuction.econ.withdrawPlayer(playerName, unsafeMoney);
+	public static boolean withdrawPlayer(UUID playerUUID, double unsafeMoney) {
+		EconomyResponse receipt = floAuction.econ.withdrawPlayer(Bukkit.getPlayer(playerUUID).getName(), unsafeMoney);
 		return receipt.transactionSuccess();
 	}
 	
-	public static boolean depositPlayer(String playerName, double unsafeMoney) {
-		EconomyResponse receipt = floAuction.econ.depositPlayer(playerName, unsafeMoney);
+	public static boolean depositPlayer(UUID playerUUID, double unsafeMoney) {
+		EconomyResponse receipt = floAuction.econ.depositPlayer(Bukkit.getPlayer(playerUUID).getName(), unsafeMoney);
 		return receipt.transactionSuccess();
 	}
 	

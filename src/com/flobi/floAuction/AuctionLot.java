@@ -1,9 +1,6 @@
 package com.flobi.floAuction;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-
+import com.flobi.utility.items;
 import org.bukkit.FireworkEffect;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -14,11 +11,14 @@ import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import com.flobi.utility.items;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.UUID;
 
 public class AuctionLot implements java.io.Serializable {
 	private static final long serialVersionUID = -1764290458703647129L;
-	private String ownerName;
+	private UUID ownerUUID;
 	private int quantity = 0;
 	private int lotTypeId;
 	private short lotDurability;
@@ -37,35 +37,35 @@ public class AuctionLot implements java.io.Serializable {
 //	private Map<String, Object> itemSerialized = null;
 	private String itemSerialized = null;
 	
-	public AuctionLot(ItemStack lotType, String lotOwner) {
+	public AuctionLot(ItemStack lotType, UUID lotOwner) {
 		// Lots can only have one type of item per lot.
-		ownerName = lotOwner;
+        ownerUUID = lotOwner;
 		setLotType(lotType);
 	}
 	public boolean AddItems(int addQuantity, boolean removeFromOwner) {
 		if (removeFromOwner) {
-			if (!items.hasAmount(ownerName, addQuantity, getTypeStack())) {
+			if (!items.hasAmount(ownerUUID, addQuantity, getTypeStack())) {
 				return false;
 			}
-			items.remove(ownerName, addQuantity, getTypeStack());
+			items.remove(ownerUUID, addQuantity, getTypeStack());
 		}
 		quantity += addQuantity;
 		return true;
 	}
 	
-	public void winLot(String winnerName) {
-		giveLot(winnerName);
+	public void winLot(UUID winnerUUID) {
+		giveLot(winnerUUID);
 	}
 	public void cancelLot() {
-		giveLot(ownerName);
+		giveLot(ownerUUID);
 	}
 	
 	
-	private void giveLot(String playerName) {
-		ownerName = playerName;
+	private void giveLot(UUID playerUUID) {
+        ownerUUID = playerUUID;
 		if (quantity == 0) return;
 		ItemStack lotTypeLock = getTypeStack();
-		Player player = floAuction.server.getPlayer(playerName);
+		Player player = floAuction.server.getPlayer(playerUUID);
 		
 		int maxStackSize = lotTypeLock.getType().getMaxStackSize();
 		if (player != null && player.isOnline()) {
@@ -108,7 +108,7 @@ public class AuctionLot implements java.io.Serializable {
 		} else {
 			// Player is offline, queue lot for give on login.
 			// Create orphaned lot to try to give when inventory clears up.
-			final AuctionLot orphanLot = new AuctionLot(lotTypeLock, playerName);
+			final AuctionLot orphanLot = new AuctionLot(lotTypeLock, playerUUID);
 			
 			// Move items to orphan lot
 			orphanLot.AddItems(quantity, false);
@@ -188,11 +188,11 @@ public class AuctionLot implements java.io.Serializable {
 		effects = items.getFireworkEffects(lotType);
 		lore = items.getLore(lotType);
 	}
-	public String getOwner() {
-		return ownerName;
+	public UUID getOwner() {
+		return ownerUUID;
 	}
-	public void setOwner(String ownerName) {
-		this.ownerName = ownerName;
+	public void setOwner(UUID ownerUUID) {
+		this.ownerUUID = ownerUUID;
 	}
 	public int getQuantity() {
 		return quantity;

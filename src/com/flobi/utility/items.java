@@ -1,14 +1,9 @@
 package com.flobi.utility;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
+import com.flobi.WhatIsIt.WhatIsIt;
+import com.flobi.floAuction.floAuction;
 import net.milkbowl.vault.item.ItemInfo;
 import net.milkbowl.vault.item.Items;
-
 import org.bukkit.FireworkEffect;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.enchantments.EnchantmentWrapper;
@@ -17,8 +12,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.*;
 
-import com.flobi.WhatIsIt.WhatIsIt;
-import com.flobi.floAuction.floAuction;
+import java.util.*;
+import java.util.Map.Entry;
 
 
 public class items {
@@ -495,17 +490,17 @@ public class items {
 
 	}
 
-	public static boolean hasAmount(String ownerName, int amount, ItemStack compareItem){
-		int has = getAmount(ownerName, compareItem);
+	public static boolean hasAmount(UUID ownerUUID, int amount, ItemStack compareItem){
+		int has = getAmount(ownerUUID, compareItem);
 		if (has >= amount) {
 			return true;
 		} else {
 			return false;
 		}
 	}
-	public static int getAmount(String ownerName, ItemStack compareItem) {
-		if (floAuction.server.getPlayer(ownerName) == null) return 0;
-		PlayerInventory inventory = floAuction.server.getPlayer(ownerName).getInventory();
+	public static int getAmount(UUID ownerUUID, ItemStack compareItem) {
+		if (floAuction.server.getPlayer(ownerUUID) == null) return 0;
+		PlayerInventory inventory = floAuction.server.getPlayer(ownerUUID).getInventory();
 		ItemStack[] items = inventory.getContents();
 		int has = 0;
 		for (ItemStack item : items) {
@@ -515,8 +510,8 @@ public class items {
 		}
 		return has;
 	}
-	public static void remove(String playerName, int amount, ItemStack compareItem){
-		Player player = floAuction.server.getPlayer(playerName);
+	public static void remove(UUID playerUUID, int amount, ItemStack compareItem){
+		Player player = floAuction.server.getPlayer(playerUUID);
 		if (player != null) {
 			PlayerInventory inventory = player.getInventory();
 	    	

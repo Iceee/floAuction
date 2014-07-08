@@ -1,43 +1,12 @@
 package com.flobi.floAuction;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInput;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutput;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
-import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
+import com.flobi.utility.functions;
+import com.flobi.utility.items;
 import net.milkbowl.vault.chat.Chat;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.permission.Permission;
-
-import org.bukkit.ChatColor;
-import org.bukkit.Color;
-import org.bukkit.FireworkEffect;
-import org.bukkit.Material;
+import org.bukkit.*;
 import org.bukkit.FireworkEffect.Type;
-import org.bukkit.GameMode;
-import org.bukkit.Location;
-import org.bukkit.Server;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
@@ -49,19 +18,19 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerChangedWorldEvent;
-import org.bukkit.event.player.PlayerCommandPreprocessEvent;
-import org.bukkit.event.player.PlayerGameModeChangeEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.*;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import com.flobi.utility.functions;
-import com.flobi.utility.items;
+import java.io.*;
+import java.text.DecimalFormat;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class floAuction extends JavaPlugin {
 	private static final Logger log = Logger.getLogger("Minecraft");
@@ -231,7 +200,7 @@ public class floAuction extends JavaPlugin {
 			Iterator<AuctionLot> iter = orphanLots.iterator();
 			while (iter.hasNext()) {
 				AuctionLot lot = iter.next();
-					if (lot.getOwner().equalsIgnoreCase(player.getName())) {
+					if (lot.getOwner().equals(player.getUniqueId())) {
 					lot.cancelLot();
 					iter.remove();
 				}
@@ -288,7 +257,7 @@ public class floAuction extends JavaPlugin {
             	
                 // Get player objects
                 final Player player = event.getPlayer();
-                if (publicAuction.getOwner().equalsIgnoreCase(player.getName()) && !player.getLocation().getWorld().equals(currentAuctionOwnerLocation.getWorld())) {
+                if (publicAuction.getOwner().equals(player.getUniqueId()) && !player.getLocation().getWorld().equals(currentAuctionOwnerLocation.getWorld())) {
                 	// This is running as a timer because MultiInv is using HIGHEST priority and 
                 	// there's no way to send a cancel to it, so we have to go after the fact and
                 	// remove the user.
@@ -298,7 +267,7 @@ public class floAuction extends JavaPlugin {
                 		}
                 	}, 1L);
                 	sendMessage("worldchange-fail-auction-owner", player, publicAuction, false);
-                } else if (publicAuction.getCurrentBid() != null && publicAuction.getCurrentBid().getBidder().equalsIgnoreCase(player.getName())
+                } else if (publicAuction.getCurrentBid() != null && publicAuction.getCurrentBid().getBidder().equals(player.getUniqueId())
                 		 && !player.getLocation().getWorld().equals(currentBidPlayerLocation.getWorld())
                 		) {
                 	// This is running as a timer because MultiInv is using HIGHEST priority and 
@@ -320,10 +289,10 @@ public class floAuction extends JavaPlugin {
                 // Get player objects
                 Player player = event.getPlayer();
                 
-                if (publicAuction.getOwner().equalsIgnoreCase(player.getName())) {
+                if (publicAuction.getOwner().equals(player.getUniqueId())) {
                 	event.setCancelled(true);
                 	sendMessage("gamemodechange-fail-auction-owner", player, publicAuction, false);
-                } else if (publicAuction.getCurrentBid() != null && publicAuction.getCurrentBid().getBidder().equalsIgnoreCase(player.getName())) {
+                } else if (publicAuction.getCurrentBid() != null && publicAuction.getCurrentBid().getBidder().equals(player.getUniqueId())) {
                 	event.setCancelled(true);
                 	sendMessage("gamemodechange-fail-auction-bidder", player, publicAuction, false);
                 }
@@ -346,7 +315,7 @@ public class floAuction extends JavaPlugin {
         		}
         		if (!isDisabledCommand) return;
 
-    			if (Participant.isParticipating(event.getPlayer().getName())) {
+    			if (Participant.isParticipating(event.getPlayer().getUniqueId())) {
 	            	event.setCancelled(true);
 	            	sendMessage("disabled-command", event.getPlayer(), publicAuction, false);
     				return;
@@ -355,7 +324,7 @@ public class floAuction extends JavaPlugin {
         	@EventHandler()
         	public void onPlayerMove(PlayerMoveEvent event) {
         		if (event.isCancelled()) return;
-        		Participant.forceLocation(event.getPlayer().getName());
+        		Participant.forceLocation(event.getPlayer().getUniqueId());
         	}
         }, this);
 		
@@ -369,14 +338,6 @@ public class floAuction extends JavaPlugin {
 		voluntarilyDisabledUsers = loadArrayListString("voluntarilyDisabledUsers.ser");
 		suspendedUsers = loadArrayListString("suspendedUsers.ser");
 		userSavedInputArgs = loadMapStringStringArray("userSavedInputArgs.ser");
-
-        // Load up the Plugin metrics
-        try {
-            MetricsLite metrics = new MetricsLite(this);
-            metrics.start();
-        } catch (IOException e) {
-            // Failed to submit the stats :-(
-        }
 		sendMessage("plugin-enabled", console, null, false);
 		
 	}
@@ -554,8 +515,7 @@ public class floAuction extends JavaPlugin {
 	}
 	/**
 	 * Prepares chat, prepending prefix and processing colors.
-	 * 
-	 * @param String message to prepare
+	 *
 	 * @return String prepared message
 	 */
     private static String chatPrep(String message) {
@@ -571,8 +531,6 @@ public class floAuction extends JavaPlugin {
     }
     
     public void queueAuction(Auction auctionToQueue, Player player, Auction currentAuction) {
-		String playerName = player.getName();
-
 		if (currentAuction == null) {
 			// Queuing because of interval not yet timed out.
 			// Allow a queue of 1 to override if 0 for this condition.
@@ -585,7 +543,7 @@ public class floAuction extends JavaPlugin {
 				sendMessage("auction-fail-auction-exists", player, currentAuction, false);
 				return;
 			}
-			if (currentAuction.getOwner().equalsIgnoreCase(playerName)) {
+			if (currentAuction.getOwner().equals(player.getUniqueId())) {
 				sendMessage("auction-queue-fail-current-auction", player, currentAuction, false);
 				return;
 			}
@@ -597,7 +555,7 @@ public class floAuction extends JavaPlugin {
 		for(int i = 0; i < auctionQueue.size(); i++) {
 			if (auctionQueue.get(i) != null) {
 				Auction queuedAuction = auctionQueue.get(i);
-				if (queuedAuction.getOwner().equalsIgnoreCase(playerName)) {
+				if (queuedAuction.getOwner().equals(player.getUniqueId())) {
 					sendMessage("auction-queue-fail-in-queue", player, currentAuction, false);
 					return;
 				}
@@ -605,7 +563,7 @@ public class floAuction extends JavaPlugin {
 		}
 		if ((auctionQueue.size() == 0 && System.currentTimeMillis() - lastAuctionDestroyTime >= minAuctionIntervalSecs * 1000) || auctionToQueue.isValid()) {
 			auctionQueue.add(auctionToQueue);
-			Participant.addParticipant(playerName);
+			Participant.addParticipant(player.getUniqueId());
 			checkAuctionQueue();
 			if (auctionQueue.contains(auctionToQueue)) {
 				sendMessage("auction-queue-enter", player, currentAuction, false);
@@ -883,7 +841,7 @@ public class floAuction extends JavaPlugin {
     				}
     				
     				// The function returns null and sends error on failure.
-    				String[] mergedArgs = functions.mergeInputArgs(playerName, args, true);
+    				String[] mergedArgs = functions.mergeInputArgs(player.getUniqueId(), args, true);
     				
     				if (mergedArgs != null) {
 						floAuction.userSavedInputArgs.put(playerName, mergedArgs);
@@ -903,7 +861,7 @@ public class floAuction extends JavaPlugin {
     				}
     				
     				for(int i = 0; i < auctionQueue.size(); i++){
-    					if (auctionQueue.get(i).getOwner().equalsIgnoreCase(playerName)) {
+    					if (auctionQueue.get(i).getOwner().equals(playerName)) {
     						auctionQueue.remove(i);
     						sendMessage("auction-cancel-queued", player, auction, false);
     						return true;
@@ -915,7 +873,7 @@ public class floAuction extends JavaPlugin {
     					return true;
     				}
     				
-					if (player == null || player.getName().equalsIgnoreCase(auction.getOwner()) || perms.has(player, "auction.admin")) {
+					if (player == null || player.getUniqueId().equals(auction.getOwner()) || perms.has(player, "auction.admin")) {
 						if (cancelPreventionSeconds > auction.getRemainingTime() || cancelPreventionPercent > (double)auction.getRemainingTime() / (double)auction.getTotalTime() * 100D) {
 	    					sendMessage("auction-fail-cancel-prevention", player, auction, false);
 						} else {
@@ -940,7 +898,7 @@ public class floAuction extends JavaPlugin {
     					sendMessage("no-permission", player, auction, false);
     					return true;
 					}
-					if (playerName.equalsIgnoreCase(auction.getOwner())) {
+					if (playerName.equalsIgnoreCase(Bukkit.getPlayer(auction.getOwner()).getName())) {
     					sendMessage("confiscation-fail-self", player, auction, false);
     					return true;
 					}
@@ -956,7 +914,7 @@ public class floAuction extends JavaPlugin {
     					sendMessage("auction-fail-no-early-end", player, auction, false);
         				return true;
     				}
-					if (player.getName().equalsIgnoreCase(auction.getOwner())) {
+					if (player.getUniqueId().equals(auction.getOwner())) {
     					auction.end();
     					publicAuction = null;
 					} else {
@@ -990,7 +948,7 @@ public class floAuction extends JavaPlugin {
     					return true;
     				}
     				for(int i = 0; i < auctionQueue.size(); i++){
-    					if (auctionQueue.get(i).getOwner().equalsIgnoreCase(playerName)) {
+    					if (auctionQueue.get(i).getOwner().equals(player.getUniqueId())) {
         					sendMessage("auction-queue-status-in-queue", player, auction, false);
     						return true;
     					}
@@ -1047,31 +1005,30 @@ public class floAuction extends JavaPlugin {
     	sendMessage(messageKeys, player, auction, fullBroadcast, fireworkAspect);
     }
 
-    public static void sendMessage(List<String> messageKeys, CommandSender player, Auction auction, boolean fullBroadcast, String fireworkAspect) {
+    public static void sendMessage(List<String> messageKeys, CommandSender sender, Auction auction, boolean fullBroadcast, String fireworkAspect) {
 
-    	String playerName = null;
-    	if (player != null) {
-	    	if (player instanceof Player) {
-		    	if (!fullBroadcast && voluntarilyDisabledUsers.indexOf(player.getName()) != -1) {
-		    		// Don't send this user any messages.
-		    		return;
-				}
-		    	playerName = player.getName();
-	    	} else {
-		    	if (!fullBroadcast && voluntarilyDisabledUsers.indexOf("*console*") != -1) {
-		    		// Don't send console any messages.
-		    		return;
-				}
-		    	playerName = "*console*";
-	    	}
-    	}
+        Player player = null;
+        if(sender != null) {
+            if(sender instanceof Player) {
+                player = (Player) sender;
+            } else {
+                return;
+            }
+        } else {
+            return;
+        }
+
+        if (!fullBroadcast && voluntarilyDisabledUsers.indexOf(player.getUniqueId()) != -1) {
+            // Don't send this user any messages.
+            return;
+        }
     	
 
     	if (messageKeys == null || messageKeys.size() == 0) {
     		return;
     	}
     	
-    	String owner = null;
+    	UUID owner = null;
     	String ownerDisplay = null;
     	String quantity = null;
     	String lotType = null;
@@ -1088,14 +1045,14 @@ public class floAuction extends JavaPlugin {
     	String bookAuthor = null;
     	String bookTitle = null;
     	String displayName = null;
-	String itemName = null;
+	    String itemName = null;
     	String rocketPower = null;
     	ItemStack typeLot = null;
-	String enchantIndicator = null;	
+	    String enchantIndicator = null;
     	String queuePostition = "-";
 
 		for(int i = 0; i < auctionQueue.size(); i++){
-			if (auctionQueue.get(i).getOwner().equalsIgnoreCase(playerName)) {
+			if (auctionQueue.get(i).getOwner().equals(player.getUniqueId())) {
 				queuePostition = Integer.toString(i + 1);
 			}
 		}
@@ -1110,7 +1067,7 @@ public class floAuction extends JavaPlugin {
     		if (ownerPlayer != null) {
     			ownerDisplay = ownerPlayer.getDisplayName();
     		} else {
-    			ownerDisplay = owner;
+    			return;
     		}
     		
     		quantity = Integer.toString(auction.getLotQuantity());
@@ -1127,7 +1084,7 @@ public class floAuction extends JavaPlugin {
     		startAuctionTax = functions.formatAmount(auction.extractedPreTax);
 			endAuctionTax = functions.formatAmount(auction.extractedPostTax);
 			if (auction.getCurrentBid() != null) {
-				currentBidder = auction.getCurrentBid().getBidder();
+				currentBidder = Bukkit.getPlayer(auction.getCurrentBid().getBidder()).getName();
 				currentBid = functions.formatAmount(auction.getCurrentBid().getBidAmount());
 				currentMaxBid = functions.formatAmount(auction.getCurrentBid().getMaxBidAmount());
 			} else {
@@ -1181,7 +1138,6 @@ public class floAuction extends JavaPlugin {
 			}
 			if (rocketPower == null) rocketPower = "-";
     	} else {
-        	owner = "-";
         	ownerDisplay = "-";
         	quantity = "-";
         	lotType = "-";
@@ -1198,9 +1154,9 @@ public class floAuction extends JavaPlugin {
         	bookAuthor = "-";
         	bookTitle = "-";
         	displayName = "-";
-		itemName = "-";
+		    itemName = "-";
         	rocketPower = "-";
-		enchantIndicator = "-";
+		    enchantIndicator = "-";
     	}
     	
     	for (int l = 0; l < messageKeys.size(); l++) {
@@ -1226,7 +1182,7 @@ public class floAuction extends JavaPlugin {
 	    		String messageListItem = i.next();
 	    		String message = chatPrep(messageListItem);
 		
-				message = message.replace("%o", owner);
+				message = message.replace("%o", Bukkit.getPlayer(owner).getName());
 				message = message.replace("%O", ownerDisplay);
 
 				message = message.replace("%q", quantity);
@@ -1252,7 +1208,7 @@ public class floAuction extends JavaPlugin {
 				message = message.replace("%c", floAuction.econ.currencyNameSingular());
 				message = message.replace("%C", floAuction.econ.currencyNamePlural());
 				
-				String[] defaultStartArgs = functions.mergeInputArgs(playerName, new String[] {}, false);
+				String[] defaultStartArgs = functions.mergeInputArgs(player.getUniqueId(), new String[] {}, false);
 				if (defaultStartArgs[0].equalsIgnoreCase("this") || defaultStartArgs[0].equalsIgnoreCase("hand")) {
 					message = message.replace("%U", textConfig.getString("prep-amount-in-hand"));
 				} else if (defaultStartArgs[0].equalsIgnoreCase("all")) {
@@ -1406,7 +1362,7 @@ public class floAuction extends JavaPlugin {
     	Player[] onlinePlayers = server.getOnlinePlayers();
     	
     	for (Player player : onlinePlayers) {
-        	if (voluntarilyDisabledUsers.indexOf(player.getName()) == -1 && Participant.checkLocation(player.getName())) {
+        	if (voluntarilyDisabledUsers.indexOf(player.getName()) == -1 && Participant.checkLocation(player.getUniqueId())) {
         		player.sendMessage(message);
     		}
     	}
@@ -1473,11 +1429,11 @@ public class floAuction extends JavaPlugin {
         return perms != null;
     }
 
-    public static void sendMessage(String messageKey, String playerName, Auction auction) {
-	if (playerName == null) {
-		sendMessage(messageKey, (CommandSender) null, auction, true);
-	} else {
-		sendMessage(messageKey, server.getPlayer(playerName), auction, false);
-	}
+    public static void sendMessage(String messageKey, UUID playerUUID, Auction auction) {
+        if (playerUUID == null) {
+            sendMessage(messageKey, (CommandSender) null, auction, true);
+        } else {
+            sendMessage(messageKey, server.getPlayer(playerUUID), auction, false);
+        }
     }
 }

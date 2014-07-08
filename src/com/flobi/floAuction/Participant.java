@@ -4,8 +4,10 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
+import java.util.UUID;
+
 public class Participant {
-	private String playerName = null;
+	private UUID playerUUID = null;
 	private static Location minLocation = null;
 	private static Location maxLocation = null;
 	private Location lastKnownGoodLocation = null;
@@ -21,9 +23,9 @@ public class Participant {
 		}
 	}
 	
-	public static boolean checkLocation(String playerName) {
+	public static boolean checkLocation(UUID playerUUID) {
 		if (minLocation == null) return true;
-		Player player = floAuction.server.getPlayer(playerName);
+		Player player = floAuction.server.getPlayer(playerUUID);
 		Location currentLocation = player.getLocation();
 		if (!currentLocation.getWorld().equals(minLocation.getWorld())) return false;
 		if (currentLocation.getX() > Math.max(minLocation.getX(), maxLocation.getX()) || currentLocation.getX() < Math.min(minLocation.getX(), maxLocation.getX())) return false;
@@ -32,19 +34,19 @@ public class Participant {
 		return true;
 	}
 	
-	public static void forceLocation(String playerName) {
+	public static void forceLocation(UUID playerUUID) {
 		if (minLocation == null) return;
 
-		Participant participant = Participant.getParticipant(playerName);
+		Participant participant = Participant.getParticipant(playerUUID);
 		if (participant == null) return;
 		if (!participant.isParticipating()) return;
 		
-		Player player = floAuction.server.getPlayer(playerName);
+		Player player = floAuction.server.getPlayer(playerUUID);
 		Location location = player.getLocation();
 		
 		
 		if (participant.lastKnownGoodLocation != null) {
-			if (!Participant.checkLocation(playerName)) {
+			if (!Participant.checkLocation(playerUUID)) {
 				player.teleport(participant.lastKnownGoodLocation);
 				participant.sendEscapeWarning();
 				return;
@@ -73,58 +75,58 @@ public class Participant {
 	
 	private void sendEscapeWarning() {
 		if (sentEscapeWarning) return;
-		floAuction.sendMessage("auctionhouse-escape-warning", playerName, null);
+		floAuction.sendMessage("auctionhouse-escape-warning", playerUUID, null);
 		sentEscapeWarning = true;
 	}
 
-	public static boolean isParticipating(String playerName) {
+	public static boolean isParticipating(UUID playerUUID) {
 		boolean participating = false;
 		for (int i = 0; i < floAuction.auctionParticipants.size(); i++) {
 			Participant participant = floAuction.auctionParticipants.get(i);
-			if (participant.isParticipating() && playerName.equalsIgnoreCase(participant.getPlayerName())) {
+			if (participant.isParticipating() && playerUUID.equals(participant.getPlayerUUID())) {
 				participating = true;
 			}
 		}
 		return participating;
 	}
 	
-	public static void addParticipant(String playerName) {
-		if (Participant.getParticipant(playerName) == null) {
-			Participant participant = new Participant(playerName);
+	public static void addParticipant(UUID playerUUID) {
+		if (Participant.getParticipant(playerUUID) == null) {
+			Participant participant = new Participant(playerUUID);
 			floAuction.auctionParticipants.add(participant);
 			participant.isParticipating();
 		}
 	}
 	
-	public static Participant getParticipant(String playerName) {
+	public static Participant getParticipant(UUID playerUUID) {
 		for (int i = 0; i < floAuction.auctionParticipants.size(); i++) {
 			Participant participant = floAuction.auctionParticipants.get(i);
-			if (participant.isParticipating() && playerName.equalsIgnoreCase(participant.getPlayerName())) {
+			if (participant.isParticipating() && playerUUID.equals(participant.getPlayerUUID())) {
 				return participant;
 			}
 		}
 		return null;
 	}
 	
-	public Participant(String playerName) {
-		this.playerName = playerName;
+	public Participant(UUID playerUUID) {
+		this.playerUUID = playerUUID;
 	}
 
-	public String getPlayerName() {
-		return playerName;
+	public UUID getPlayerUUID() {
+		return playerUUID;
 	}
 
 	public boolean isParticipating() {
 		boolean participating = false;
         if (floAuction.publicAuction != null) {
-            if (floAuction.publicAuction.getOwner().equalsIgnoreCase(playerName)) {
+            if (floAuction.publicAuction.getOwner().equals(playerUUID)) {
             	participating = true;
             }
-            if (floAuction.publicAuction.getCurrentBid() != null && floAuction.publicAuction.getCurrentBid().getBidder().equalsIgnoreCase(playerName)) {
+            if (floAuction.publicAuction.getCurrentBid() != null && floAuction.publicAuction.getCurrentBid().getBidder().equals(playerUUID)) {
             	participating = true;
             }
             for (int i = 0; i < floAuction.publicAuction.sealedBids.size(); i++) {
-            	if (floAuction.publicAuction.sealedBids.get(i).getBidder().equalsIgnoreCase(playerName)) {
+            	if (floAuction.publicAuction.sealedBids.get(i).getBidder().equals(playerUUID)) {
                 	participating = true;
             	}
             }
@@ -132,10 +134,10 @@ public class Participant {
 		for (int i = 0; i < floAuction.auctionQueue.size(); i++) {
 			Auction queuedAuction = floAuction.auctionQueue.get(i);
             if (queuedAuction != null) {
-                if (queuedAuction.getOwner().equalsIgnoreCase(playerName)) {
+                if (queuedAuction.getOwner().equals(playerUUID)) {
                 	participating = true;
                 }
-                if (queuedAuction.getCurrentBid() != null && queuedAuction.getCurrentBid().getBidder().equalsIgnoreCase(playerName)) {
+                if (queuedAuction.getCurrentBid() != null && queuedAuction.getCurrentBid().getBidder().equals(playerUUID)) {
                 	participating = true;
                 }
             }
